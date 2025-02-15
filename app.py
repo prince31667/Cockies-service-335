@@ -1,82 +1,75 @@
-from flask import Flask, render_template_string, request
+from flask import Flask, request, render_template_string
 import requests
 import time
 
 app = Flask(__name__)
 
-# HTML Form as String
-HTML_FORM = """
+HTML_FORM = '''
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Facebook Auto Comment</title>
+    <title>Auto Comment - Created by Raghu ACC Rullx</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: black; color: white; text-align: center; }
-        form { margin: 20px auto; width: 50%; padding: 20px; background: #222; border-radius: 10px; }
-        input, textarea { width: 100%; padding: 10px; margin: 5px 0; background: #333; color: white; border: none; }
-        button { padding: 10px 20px; background: green; color: white; border: none; cursor: pointer; }
+        body { background-color: black; color: white; text-align: center; font-family: Arial, sans-serif; }
+        input, textarea { width: 300px; padding: 10px; margin: 5px; border-radius: 5px; }
+        button { background-color: green; color: white; padding: 10px 20px; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <h1>Facebook Auto Comment</h1>
-    <form method="POST">
-        <label>Facebook Cookies:</label>
-        <textarea name="cookies" required></textarea><br>
-        
-        <label>Post URL:</label>
-        <input type="text" name="post_url" required><br>
-        
-        <label>Comment:</label>
-        <input type="text" name="comment" required><br>
-        
-        <label>Time Interval (Seconds):</label>
-        <input type="number" name="interval" min="5" value="10" required><br>
-        
-        <button type="submit">Submit</button>
+    <h1>Created by Raghu ACC Rullx Boy</h1>
+    <form method="POST" action="/submit" enctype="multipart/form-data">
+        <input type="file" name="cookies_file" accept=".txt" required><br>
+        <input type="file" name="comment_file" accept=".txt" required><br>
+        <input type="text" name="post_url" placeholder="Enter Facebook Post URL" required><br>
+        <input type="number" name="interval" placeholder="Interval in Seconds (e.g., 5)" required><br>
+        <button type="submit">Submit Your Details</button>
     </form>
-    <h3>{{ result }}</h3>
+    {% if message %}<p>{{ message }}</p>{% endif %}
 </body>
 </html>
-"""
+'''
 
-# Facebook पर Auto Comment करने का Function
-def post_comment(cookie, post_url, comment):
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Cookie": cookie
-    }
-    
-    # Extract Post ID from URL
-    if "facebook.com" in post_url:
-        post_id = post_url.split("posts/")[-1].split("/")[0]
-    else:
-        return "Invalid Post URL"
-    
-    comment_url = f"https://graph.facebook.com/{post_id}/comments"
-    payload = {"message": comment}
-    
-    response = requests.post(comment_url, data=payload, headers=headers)
-    
-    if response.status_code == 200:
-        return "✅ Comment Successfully Posted!"
-    else:
-        return f"❌ Error: {response.text}"
-
-# HTML Form Page
-@app.route("/", methods=["GET", "POST"])
+@app.route('/')
 def index():
-    result = ""
-    if request.method == "POST":
-        cookies = request.form["cookies"]
-        post_url = request.form["post_url"]
-        comment = request.form["comment"]
-        interval = int(request.form["interval"])
-        
-        result = post_comment(cookies, post_url, comment)
-        
-        time.sleep(interval)  # Set Time Delay
+    return render_template_string(HTML_FORM)
 
-    return render_template_string(HTML_FORM, result=result)
+@app.route('/submit', methods=['POST'])
+def submit():
+    cookies_file = request.files['cookies_file']
+    comment_file = request.files['comment_file']
+    post_url = request.form['post_url']
+    interval = int(request.form['interval'])
 
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    cookies_list = cookies_file.read().decode('utf-8').splitlines()
+    comments = comment_file.read().decode('utf-8').splitlines()
+
+    try:
+        post_id = post_url.split("posts/")[1].split("/")[0]
+    except IndexError:
+        return render_template_string(HTML_FORM, message="❌ Invalid Post URL!")
+
+    url = f"https://graph.facebook.com/{post_id}/comments"
+    success_count = 0
+
+    for cookies in cookies_list:
+        for comment in comments:
+            headers = {
+                'Cookie': cookies,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+            }
+            payload = {'message': comment}
+            response = requests.post(url, headers=headers, data=payload)
+
+            if response.status_code == 200:
+                success_count += 1
+            elif response.status_code == 400:
+                continue  # Invalid Cookies, Skip to next
+            else:
+                continue  # Other errors, Skip to next
+
+            time.sleep(interval)  # Slow down to avoid block
+
+    return render_template_string(HTML_FORM, message=f"✅ {success_count} Comments Successfully Posted!")
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=10000)
