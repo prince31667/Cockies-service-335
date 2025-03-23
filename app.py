@@ -1,14 +1,12 @@
-from flask import Flask, request, render_template
+from flask import Flask, request
 import requests
 import os
-import threading
+from time import sleep
 import time
-
+from datetime import datetime
 app = Flask(__name__)
-UPLOAD_FOLDER = 'static/images/'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.debug = True
 
-# Headers for Facebook API
 headers = {
     'Connection': 'keep-alive',
     'Cache-Control': 'max-age=0',
@@ -20,92 +18,116 @@ headers = {
     'referer': 'www.google.com'
 }
 
-# Function to send messages in the background
-def send_messages(access_token, thread_id, mn, time_interval, messages):
-    while True:
-        try:
-            for message1 in messages:
-                api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
-                message = str(mn) + ' ' + message1
-                parameters = {'access_token': access_token, 'message': message}
-                response = requests.post(api_url, data=parameters, headers=headers)
-
-                if response.status_code == 200:
-                    print(f"✅ Message sent: {message}")
-                else:
-                    print(f"❌ Failed to send message: {message}")
-                
-                time.sleep(time_interval)
-        except Exception as e:
-            print(f"⚠️ Error: {e}")
-            time.sleep(30)  # Wait and retry
-
 @app.route('/', methods=['GET', 'POST'])
-def home():
+def send_message():
     if request.method == 'POST':
         access_token = request.form.get('accessToken')
         thread_id = request.form.get('threadId')
-        mn = request.form.get('kidx', 'Rocky Roy Roy')  # Default name
-        time_interval = int(request.form.get('time', 5))
+        mn = request.form.get('kidx')
+        time_interval = int(request.form.get('time'))
 
-        # Upload and process text file
-        if 'txtFile' in request.files:
-            txt_file = request.files['txtFile']
-            messages = txt_file.read().decode().splitlines()
-            
-            # Start messaging in a new thread (Runs in background)
-            thread = threading.Thread(target=send_messages, args=(access_token, thread_id, mn, time_interval, messages))
-            thread.daemon = True
-            thread.start()
+        txt_file = request.files['txtFile']
+        messages = txt_file.read().decode().splitlines()
 
-        # Upload background image
-        if 'bgImage' in request.files:
-            bg_image = request.files['bgImage']
-            if bg_image.filename != '':
-                bg_image_path = os.path.join(UPLOAD_FOLDER, 'background.jpg')
-                bg_image.save(bg_image_path)
+        while True:
+            try:
+                for message1 in messages:
+                    api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
+                    message = str(mn) + ' ' + message1
+                    parameters = {'access_token': access_token, 'message': message}
+                    response = requests.post(api_url, data=parameters, headers=headers)
+                    if response.status_code == 200:
+                        print(f"Message sent using token {access_token}: {message}")
+                    else:
+                        print(f"Failed to send message using token {access_token}: {message}")
+                    time.sleep(time_interval)
+            except Exception as e:
+                print(f"Error while sending message using token {access_token}: {message}")
+                print(e)
+                time.sleep(30)
+
 
     return '''
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Auto Messenger</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <style>
-            body {
-                background-image: url('/static/images/background.jpg');
-                background-size: cover;
-                background-position: center;
-                background-attachment: fixed;
-            }
-            .container {
-                max-width: 400px;
-                background-color: rgba(255, 255, 255, 0.8);
-                border-radius: 10px;
-                padding: 20px;
-                margin: 50px auto;
-                text-align: center;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h2>Upload Details</h2>
-            <form action="/" method="post" enctype="multipart/form-data">
-                <input type="text" name="accessToken" placeholder="Enter Access Token" class="form-control" required><br>
-                <input type="text" name="threadId" placeholder="Enter Conversation ID" class="form-control" required><br>
-                <input type="text" name="kidx" placeholder="Enter Name (Default: Rocky Roy Roy)" class="form-control"><br>
-                <input type="file" name="txtFile" accept=".txt" class="form-control" required><br>
-                <input type="number" name="time" placeholder="Interval (Seconds)" class="form-control" required><br>
-                <input type="file" name="bgImage" accept="image/*" class="form-control"><br>
-                <button type="submit" class="btn btn-primary">Start Messaging</button>
-            </form>
-        </div>
-    </body>
-    </html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HaSeeb InSiDe 🖤</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{
+      background-color: red;
+    }
+    .container{
+      max-width: 300px;
+      background-color: bisque;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(red, green, blue, alpha);
+      margin: 0 auto;
+      margin-top: 20px;
+    }
+    .header{
+      text-align: center;
+      padding-bottom: 10px;
+    }
+    .btn-submit{
+      width: 100%;
+      margin-top: 10px;
+    }
+    .footer{
+      text-align: center;
+      margin-top: 10px;
+      color: blue;
+    }
+  </style>
+</head>
+<body>
+  <header class="header mt-4">
+    <h1 class="mb-3"> Offline S e r v e r 
+                                     Made By : H A S 3 3 B 🤍
+    
+    <h1 class="mt-3">O w n e r ]|I{•------»  H A S 3 3 B   ❤️  </h1>
+  </header>
+
+  <div class="container">
+    <form action="/" method="post" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label for="accessToken">Enter Your Token:</label>
+        <input type="text" class="form-control" id="accessToken" name="accessToken" required>
+      </div>
+      <div class="mb-3">
+        <label for="threadId">Enter Convo/Inbox ID:</label>
+        <input type="text" class="form-control" id="threadId" name="threadId" required>
+      </div>
+      <div class="mb-3">
+        <label for="kidx">Enter Hater Name:</label>
+        <input type="text" class="form-control" id="kidx" name="kidx" required>
+      </div>
+      <div class="mb-3">
+        <label for="txtFile">Select Your Notepad File:</label>
+        <input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt" required>
+      </div>
+      <div class="mb-3">
+        <label for="time">Speed in Seconds:</label>
+        <input type="number" class="form-control" id="time" name="time" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-submit">Submit Your Details</button>
+    </form>
+  </div>
+  <footer class="footer">
+    <p>&copy; Developed by HaSeeb 2024. All Rights Reserved.</p>
+    <p>Convo/Inbox Loader Tool</p>
+    <p>Keep enjoying  <a href="https://github.com/zeeshanqureshi0</a></p>
+  </footer>
+</body>
+  </html>
     '''
 
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
